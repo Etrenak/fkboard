@@ -26,3 +26,11 @@ hs_err_pid*
 
 # Node
 node_modules/
+
+/bin/
+.classpath
+.project
+*.jar
+/.settings/
+/.idea/
+/plugins/
