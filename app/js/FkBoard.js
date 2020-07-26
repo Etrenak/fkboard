@@ -41,7 +41,6 @@ export class FkEditor
         
         this.dataBridge.addReceiver(951, () => {
             document.querySelector('.scoreboard-btn').addEventListener('click', () => {
-                console.log("ok");
                 this.dataBridge.fetchScoreboardContent();
             });
         });
