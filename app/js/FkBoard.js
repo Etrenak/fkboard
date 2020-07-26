@@ -4,6 +4,9 @@ import { Rule } from "./components/Rule.js";
 import { getBlocksList } from "./BlocksList.js";
 import { ScoreboardModal } from "./components/Modal.js";
 
+const base32 = "abcdefghijklmnopqrstuvwxyz012345";
+const PROXY_WEBSOCKET_URL = "ws://localhost:50000/socket";
+
 export class FkEditor
 {
     /**
@@ -28,10 +31,37 @@ export class FkEditor
         this.modifiedRules = [];
         this.teamsDiv = editor.querySelector('.teams');
         this.rulesDiv = editor.querySelector('.rules');
+        
+        this.dataBridge = new DataBridge();
+        this.dataBridge.addReceiver(1000, this.loadTeams.bind(this));
+        this.dataBridge.addReceiver(1001, this.playerMove.bind(this));
+        this.dataBridge.addReceiver(1002, this.loadRules.bind(this));
+        this.dataBridge.addReceiver(1003, this.changeRule.bind(this));
+        this.dataBridge.addReceiver(1004, this.editScoreboard.bind(this));
+        
+        this.dataBridge.addReceiver(951, () => {
+            document.querySelector('.scoreboard-btn').addEventListener('click', () => {
+                console.log("ok");
+                this.dataBridge.fetchScoreboardContent();
+            });
+        });
+
+
+        let buffer = new Uint8Array(64);
+        window.crypto.getRandomValues(buffer);
+        this.id = "";
+        for(let i=0;i<16;i++){
+            this.id += "abcdefghijklmnopqrstuvwxyz012345"[buffer[i] % 32];
+        }
+        
+        this.dataBridge.setWebSocket(new WebSocket(PROXY_WEBSOCKET_URL));
+        this.dataBridge.useProxy(this.id)
+
+        document.getElementById("command-board-id").innerHTML = this.id;
     }
 
     /**
-     * Init DataBridge
+     * Use DataBridge with a direct websocket
      * 
      * @param {string} adress 
      * @param {string} port 
@@ -39,21 +69,12 @@ export class FkEditor
      */
     connect(adress, port, password)
     {
-        this.dataBridge = new DataBridge(new WebSocket(`ws://${adress}:${port}/socket`), password);
-        this.dataBridge.addReceiver(1000, this.loadTeams.bind(this));
-        this.dataBridge.addReceiver(1001, this.playerMove.bind(this));
-        this.dataBridge.addReceiver(1002, this.loadRules.bind(this));
-        this.dataBridge.addReceiver(1003, this.changeRule.bind(this));
-        this.dataBridge.addReceiver(1004, this.editScoreboard.bind(this));
+        this.dataBridge.setWebSocket(new WebSocket(`ws://${adress}:${port}/socket`));
+        this.dataBridge.useLogin(password);
         this.dataBridge.addReceiver(401, () => {
             if (this.dataBridge.authSent) {
                 alert('Mot de passe incorrect');
             }
-        });
-        this.dataBridge.addReceiver(200, () => {
-            document.querySelector('.scoreboard-btn').addEventListener('click', () => {
-                this.dataBridge.fetchScoreboardContent();
-            });
         });
     }
 

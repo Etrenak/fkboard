@@ -5,3 +5,6 @@ api-version: "1.13"
 depend: [FallenKingdom]
 authors: [syldium]
 description: Interface de configuration web pour le plugin de FallenKingdom (partie serveur)
+
+commands:
+  fkboard:

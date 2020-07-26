@@ -1,14 +1,14 @@
 package com.github.syldium.fkboard.websocket.commands;
 
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import java.util.List;
+
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
-import fr.devsylone.fkpi.FkPI;
-import org.java_websocket.WebSocket;
 
-import java.util.List;
+import fr.devsylone.fallenkingdom.Fk;
+import fr.devsylone.fkpi.FkPI;
 
 public class CommandsManager {
     private final List<WSCommand> commands;
@@ -26,7 +26,7 @@ public class CommandsManager {
                 .build();
     }
 
-    public boolean executeCommand(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, String action, JsonObject json) {
+    public boolean executeCommand(Fk plugin, FkPI fkpi,  FkWebSocket webSocket, String action, JsonObject json) {
         WSCommand cmd = commands.stream()
                 .filter(node -> node.path.equalsIgnoreCase(action))
                 .findFirst()
@@ -35,9 +35,9 @@ public class CommandsManager {
         if (cmd == null || !cmd.hasRequiredJsonKeys(json)) {
             return false;
         }
-        boolean result = cmd.execute(plugin, fkpi, wsServer, sender, json);
+        boolean result = cmd.execute(plugin, fkpi, webSocket, json);
         if (result && cmd.needScoreboardReload) {
-            wsServer.runSync(p -> wsServer.getFk().getScoreboardManager().recreateAllScoreboards());
+            webSocket.runSync(p ->  Fk.getInstance().getScoreboardManager().recreateAllScoreboards());
         }
         return result;
     }

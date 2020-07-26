@@ -1,12 +1,12 @@
 package com.github.syldium.fkboard.websocket.commands;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.github.syldium.fkboard.websocket.responses.ScoreboardContent;
 import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 import fr.devsylone.fallenkingdom.scoreboard.PlaceHolder;
 import fr.devsylone.fkpi.FkPI;
-import org.java_websocket.WebSocket;
 
 class FetchScoreboardCommand extends WSCommand {
 
@@ -15,9 +15,9 @@ class FetchScoreboardCommand extends WSCommand {
     }
 
     @Override
-    public boolean execute(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, JsonObject json) {
-        ScoreboardContent response = new ScoreboardContent(PlaceHolder.values(), wsServer.getFk().getScoreboardManager().getSidebar());
-        sender.send(response.toJSON());
+    public boolean execute(Fk plugin, FkPI fkpi, FkWebSocket webSocket, JsonObject json) {
+        ScoreboardContent response = new ScoreboardContent(PlaceHolder.values(), Fk.getInstance().getScoreboardManager().getSidebar());
+        webSocket.send(response.toJSON());
         return true;
     }
 }

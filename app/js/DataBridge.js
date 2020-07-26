@@ -1,17 +1,10 @@
 export class DataBridge
 {
     /**
-     * Init data bridge with a websocket connection.
-     * 
-     * @param {WebSocket} ws 
-     * @param {string} paessword
+     * Init data bridge.
      */
-    constructor(ws, password)
+    constructor()
     {
-        this.ws = ws;
-        this.ws.onerror = () => alert('Impossible de se connecter au serveur !');
-        this.ws.onopen = () => this.login(password);
-        this.ws.onmessage = (message) => this.onreceive(JSON.parse(message.data));
         this.receivers = {
             999: (json) => {
                 this.serverVersion = json.serverVersion;
@@ -20,6 +13,37 @@ export class DataBridge
         };
         this.authSent = false;
     }
+
+    /**
+     * 
+     * @param {WebSocket} ws 
+     */
+    setWebSocket(ws) {
+        this.ws = ws;
+        this.ws.onerror = () => alert('Impossible de se connecter au serveur !');
+        this.ws.onmessage = (message) => {
+            this.onreceive(JSON.parse(message.data));
+        }
+    }
+
+    /**
+     * Use direct connection with password auth
+     * 
+     * @param {string} password
+     */
+    useLogin(password){
+        this.ws.onopen = () => this.login(password);
+    }
+
+    /**
+     * Pass through the proxy and use id auth
+     * 
+     * @param {string} id
+     */
+    useProxy(id){
+        this.ws.onopen = () => this.ws.send(JSON.stringify({"code": 950,"id": `${id}`}));
+    }
+    
 
     /**
      * Add receiver for the given code.

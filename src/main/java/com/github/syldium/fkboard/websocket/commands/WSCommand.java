@@ -1,10 +1,10 @@
 package com.github.syldium.fkboard.websocket.commands;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 import fr.devsylone.fkpi.FkPI;
-import org.java_websocket.WebSocket;
 
 public abstract class WSCommand {
 
@@ -27,5 +27,5 @@ public abstract class WSCommand {
         return true;
     }
 
-    public abstract boolean execute(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, JsonObject json);
+    public abstract boolean execute(Fk plugin, FkPI fkpi, FkWebSocket webSocket, JsonObject json);
 }

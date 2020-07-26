@@ -1,14 +1,15 @@
 package com.github.syldium.fkboard.websocket.commands;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import org.bukkit.ChatColor;
+
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 import fr.devsylone.fallenkingdom.manager.saveable.ScoreboardManager;
 import fr.devsylone.fallenkingdom.utils.Version;
 import fr.devsylone.fkpi.FkPI;
-import org.bukkit.ChatColor;
-import org.java_websocket.WebSocket;
 
 class UpdateScoreboardCommand extends WSCommand {
 
@@ -17,20 +18,20 @@ class UpdateScoreboardCommand extends WSCommand {
     }
 
     @Override
-    public boolean execute(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, JsonObject json) {
+    public boolean execute(Fk plugin, FkPI fkpi, FkWebSocket webSocket, JsonObject json) {
         if (!json.get("lines").isJsonArray()) {
             return false;
         }
-        wsServer.getFk().getScoreboardManager().getSidebar().clear();
+        Fk.getInstance().getScoreboardManager().getSidebar().clear();
         for (JsonElement lineElement : json.get("lines").getAsJsonArray()) {
             String line = lineElement.getAsString();
             if (line.length() < 5) {
                 line += ScoreboardManager.randomFakeEmpty();
             }
             if ((Version.VersionType.V1_13.isHigherOrEqual() && line.length() <= 64) || line.length() <= 32) {
-                wsServer.getFk().getScoreboardManager().getSidebar().add(line);
+                Fk.getInstance().getScoreboardManager().getSidebar().add(line);
             } else {
-                wsServer.getFk().getScoreboardManager().getSidebar().add(ChatColor.ITALIC + "invalid");
+                Fk.getInstance().getScoreboardManager().getSidebar().add(ChatColor.ITALIC + "invalid");
             }
         }
         return true;

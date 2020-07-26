@@ -1,19 +1,18 @@
 package com.github.syldium.fkboard;
 
+import java.util.Optional;
+
+import org.bukkit.plugin.java.JavaPlugin;
+
 import com.github.syldium.fkboard.listeners.FallenKingdomListener;
 import com.github.syldium.fkboard.listeners.JoinLeftListener;
 import com.github.syldium.fkboard.status.PlayerStatus;
-import com.github.syldium.fkboard.websocket.WSServer;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Objects;
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 
 public final class FkBoard extends JavaPlugin {
 
-    private WSServer server;
-    private Thread wsThread;
+    private FkWebSocket fkWebSocket;
+    private PlayerStatus playerStatus;
 
     @Override
     public void onEnable() {
@@ -21,28 +20,29 @@ public final class FkBoard extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new JoinLeftListener(this), this);
         getServer().getPluginManager().registerEvents(new FallenKingdomListener(this), this);
-
-        InetSocketAddress address = new InetSocketAddress(Objects.requireNonNull(getConfig().getString("host", "0.0.0.0")), getConfig().getInt("port", 50000));
-        server = new WSServer(this, address);
-        wsThread = new Thread(() -> server.run());
-        wsThread.start();
+        
+        getCommand("fkboard").setExecutor(new com.github.syldium.fkboard.commands.FkBoard(this));
     }
 
     @Override
-    public void onDisable() {
-        try {
-            server.stop();
-            wsThread = null;
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
+    public void onDisable()
+    {
+        getOptionalFkWebSocket().ifPresent(fkws -> fkws.close());
     }
-
-    public PlayerStatus getPlayerStatus() {
-        return server.getPlayerStatus();
+    
+    public Optional<FkWebSocket> getOptionalFkWebSocket()
+    {
+        return fkWebSocket != null ? Optional.of(fkWebSocket) : Optional.empty();
     }
-
-    public WSServer getWSServer() {
-        return server;
+    
+    public void setFkWebSocket(FkWebSocket fkWebSocket)
+    {
+        getOptionalFkWebSocket().ifPresent(fkws -> fkws.close());
+        this.fkWebSocket = fkWebSocket;
+    }
+    
+    public PlayerStatus getPlayerStatus()
+    {
+        return playerStatus;
     }
 }

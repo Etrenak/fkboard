@@ -1,11 +1,11 @@
 package com.github.syldium.fkboard.websocket.commands;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.github.syldium.fkboard.websocket.responses.RulesList;
 import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 import fr.devsylone.fkpi.FkPI;
-import org.java_websocket.WebSocket;
 
 class ListRulesCommand extends WSCommand {
 
@@ -14,8 +14,8 @@ class ListRulesCommand extends WSCommand {
     }
 
     @Override
-    public boolean execute(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, JsonObject json) {
-        sender.send(new RulesList(fkpi.getRulesManager().getRulesList()).toJSON());
+    public boolean execute(Fk plugin, FkPI fkpi, FkWebSocket webSocket, JsonObject json) {
+        webSocket.send(new RulesList(fkpi.getRulesManager().getRulesList()).toJSON());
         return true;
     }
 }

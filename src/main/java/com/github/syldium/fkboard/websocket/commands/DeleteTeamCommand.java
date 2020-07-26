@@ -1,10 +1,10 @@
 package com.github.syldium.fkboard.websocket.commands;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 import fr.devsylone.fkpi.FkPI;
-import org.java_websocket.WebSocket;
 
 class DeleteTeamCommand extends WSCommand {
 
@@ -13,7 +13,7 @@ class DeleteTeamCommand extends WSCommand {
     }
 
     @Override
-    public boolean execute(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, JsonObject json) {
+    public boolean execute(Fk plugin, FkPI fkpi, FkWebSocket webSocket, JsonObject json) {
         fkpi.getTeamManager().removeTeam(json.get("team").getAsString());
         return true;
     }

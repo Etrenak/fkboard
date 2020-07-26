@@ -1,10 +1,19 @@
 package com.github.syldium.fkboard.websocket.commands;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.github.syldium.fkboard.websocket.WSServer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.potion.PotionType;
+
+import com.github.syldium.fkboard.websocket.FkWebSocket;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 import fr.devsylone.fallenkingdom.commands.abstraction.AbstractCommand;
 import fr.devsylone.fallenkingdom.commands.rules.FkRuleCommand;
 import fr.devsylone.fallenkingdom.exception.ArgumentParseException;
@@ -16,14 +25,6 @@ import fr.devsylone.fkpi.rules.DisabledPotions;
 import fr.devsylone.fkpi.rules.Rule;
 import fr.devsylone.fkpi.util.BlockDescription;
 import fr.devsylone.fkpi.util.XPotionData;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.potion.PotionType;
-import org.java_websocket.WebSocket;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 class EditRuleCommand extends WSCommand {
 
@@ -32,7 +33,7 @@ class EditRuleCommand extends WSCommand {
     }
 
     @Override
-    public boolean execute(FkBoard plugin, FkPI fkpi, WSServer wsServer, WebSocket sender, JsonObject json) {
+    public boolean execute(Fk plugin, FkPI fkpi, FkWebSocket webSocket, JsonObject json) {
         Rule<?> rule = Rule.getByName(json.get("rule").getAsString());
         if (rule == null) {
             return false;
@@ -64,15 +65,15 @@ class EditRuleCommand extends WSCommand {
                 List<String> args = new ArrayList<>();
                 args.add(json.get("rule").getAsString());
                 args.addAll(Arrays.asList(json.get("value").getAsString().split(" ")));
-                FkRuleCommand command = (FkRuleCommand) wsServer.getFk().getCommandManager().search(FkRuleCommand.class).orElseThrow(() -> new RuntimeException("Can't get rule"));
+                FkRuleCommand command = (FkRuleCommand)  Fk.getInstance().getCommandManager().search(FkRuleCommand.class).orElseThrow(() -> new RuntimeException("Can't get rule"));
                 AbstractCommand c = command.get(args);
                 if (c.equals(command) || !c.isValidExecutor(Bukkit.getConsoleSender())) {
                     return false;
                 }
                 try {
-                    c.execute(wsServer.getFk(), Bukkit.getConsoleSender(), args, "FkBoard");
+                    c.execute(Fk.getInstance(), Bukkit.getConsoleSender(), args, "FkBoard");
                 } catch (ArgumentParseException e) {
-                    plugin.getLogger().warning("Invalid rule data sent by " + sender.getRemoteSocketAddress() + " (" + e.getMessage() + ")");
+                    plugin.getLogger().warning("Invalid rule data sent by fkboard (" + e.getMessage() + ")");
                 } catch (FkLightException e) {
                     plugin.getLogger().warning("Cannot change " + rule.getName() + " rule (" + e.getMessage() + ")");
                 }

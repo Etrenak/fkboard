@@ -1,15 +1,17 @@
 package com.github.syldium.fkboard.websocket.responses;
 
-import com.github.syldium.fkboard.FkBoard;
-import com.google.gson.JsonObject;
 import org.jetbrains.annotations.NotNull;
+
+import com.google.gson.JsonObject;
+
+import fr.devsylone.fallenkingdom.Fk;
 
 public class ServerInfo implements Response {
 
     private final String pluginVersion;
     private final String serverVersion;
 
-    public ServerInfo(@NotNull FkBoard plugin) {
+    public ServerInfo(@NotNull Fk plugin) {
         pluginVersion = plugin.getDescription().getVersion();
         serverVersion = plugin.getServer().getVersion().replaceAll("[\\w-]+ \\(MC: ([\\d.]+)\\)", "$1");
     }
