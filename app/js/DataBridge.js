@@ -1,10 +1,13 @@
-export class DataBridge
-{
+import { FkEditor } from "./FkBoard.js";
+import { concatTypedArrays} from "./helpers/Helper.js"
+
+export class DataBridge {
     /**
      * Init data bridge.
+     * 
+     * @param {FkEditor} fkeditor
      */
-    constructor()
-    {
+    constructor(fkeditor) {
         this.receivers = {
             999: (json) => {
                 this.serverVersion = json.serverVersion;
@@ -12,6 +15,7 @@ export class DataBridge
             }
         };
         this.authSent = false;
+        this.fkeditor = fkeditor;
     }
 
     /**
@@ -21,8 +25,46 @@ export class DataBridge
     setWebSocket(ws) {
         this.ws = ws;
         this.ws.onerror = () => alert('Impossible de se connecter au serveur !');
-        this.ws.onmessage = (message) => {
-            this.onreceive(JSON.parse(message.data));
+        this.ws.onmessage = (event) => {
+            if (event.data instanceof Blob) {
+                event.data.arrayBuffer().then(blobBuffer => {
+                    let iv = blobBuffer.slice(0, 12);
+                    crypto.subtle.decrypt(
+                        {
+                            name: "AES-GCM",
+                            iv: iv
+                        },
+                        this.fkeditor.secretKey,
+                        blobBuffer.slice(12))
+                        .then(buffer => {
+                            this.onreceive(JSON.parse(new TextDecoder().decode(buffer)));
+                        });
+                });
+            }
+            else {
+                this.onreceive(JSON.parse(event.data));
+            }
+        }
+    }
+
+    /**
+     * Encrypt then  send the text
+     * @param {String} text 
+     */
+    sendEncrypted(text) {
+        if(this.mode === "PROXY") {
+            let iv = crypto.getRandomValues(new Uint8Array(12));
+            crypto.subtle.encrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                this.fkeditor.secretKey,
+                new TextEncoder().encode(text))
+                .then(buffer => this.ws.send(concatTypedArrays(iv, new Uint8Array(buffer))));
+        }
+        else {
+            this.ws.send(text);
         }
     }
 
@@ -31,7 +73,8 @@ export class DataBridge
      * 
      * @param {string} password
      */
-    useLogin(password){
+    useLogin(password) {
+        this.mode = "DIRECT";
         this.ws.onopen = () => this.login(password);
     }
 
@@ -40,10 +83,11 @@ export class DataBridge
      * 
      * @param {string} id
      */
-    useProxy(id){
-        this.ws.onopen = () => this.ws.send(JSON.stringify({"code": 950,"id": `${id}`}));
+    useProxy(id) {
+        this.mode = "PROXY";
+        this.ws.onopen = () => this.ws.send(JSON.stringify({ "code": 950, "id": `${id}`, "senderType": "fkboard" }));
     }
-    
+
 
     /**
      * Add receiver for the given code.
@@ -51,8 +95,7 @@ export class DataBridge
      * @param {number} code 
      * @param {function(json)} callback
      */
-    addReceiver(code, callback)
-    {
+    addReceiver(code, callback) {
         this.receivers[code] = callback;
     }
 
@@ -61,9 +104,8 @@ export class DataBridge
      * 
      * @param {string} password 
      */
-    login(password)
-    {
-        this.ws.send(JSON.stringify({'action': `LOGIN ${password}`}));
+    login(password) {
+        this.ws.send(JSON.stringify({ 'action': `LOGIN ${password}` }));
         this.authSent = true;
     }
 
@@ -73,12 +115,11 @@ export class DataBridge
      * @param {string} playerName 
      * @param {string} teamName 
      */
-    sendTeamMovement(playerName, teamName)
-    {
+    sendTeamMovement(playerName, teamName) {
         if (typeof playerName === 'undefined') {
             return;
         }
-        this.ws.send(JSON.stringify({ code: 2001, 'action': `MOVE`, 'player': playerName, 'team': teamName }));
+        this.sendEncrypted(JSON.stringify({ code: 2001, 'action': `MOVE`, 'player': playerName, 'team': teamName }));
     }
 
     /**
@@ -86,12 +127,11 @@ export class DataBridge
      * 
      * @param {string} teamName 
      */
-    sendTeamInsertion(teamName)
-    {
+    sendTeamInsertion(teamName) {
         if (typeof teamName === 'undefined') {
             return;
         }
-        this.ws.send(JSON.stringify({ code: 2002, 'action': `INSERT TEAM`, 'team': teamName }));
+        this.sendEncrypted(JSON.stringify({ code: 2002, 'action': `INSERT TEAM`, 'team': teamName }));
     }
 
     /**
@@ -99,9 +139,8 @@ export class DataBridge
      * 
      * @param {string} teamName 
      */
-    sendTeamNameChange(previousName, newName)
-    {
-        this.ws.send(JSON.stringify({ code: 2003, 'action': `CHANGE TEAM NAME`, 'previous': previousName, 'newName': newName }));
+    sendTeamNameChange(previousName, newName) {
+        this.sendEncrypted(JSON.stringify({ code: 2003, 'action': `CHANGE TEAM NAME`, 'previous': previousName, 'newName': newName }));
     }
 
     /**
@@ -109,43 +148,37 @@ export class DataBridge
      * 
      * @param {string} teamName 
      */
-    sendTeamSuppression(teamName)
-    {
+    sendTeamSuppression(teamName) {
         if (typeof teamName === 'undefined') {
             return;
         }
-        this.ws.send(JSON.stringify({ code: 2005, 'action': `DELETE TEAM`, 'team': teamName }));
+        this.sendEncrypted(JSON.stringify({ code: 2005, 'action': `DELETE TEAM`, 'team': teamName }));
     }
 
-    askRulesList()
-    {
-        this.ws.send(JSON.stringify({ code: 2006, 'action': `LIST RULES` }));
+    askRulesList() {
+        this.sendEncrypted(JSON.stringify({ code: 2006, 'action': `LIST RULES` }));
     }
 
     /**
      * Send a rule change.
      */
-    sendRuleChange(rule, value)
-    {
-        this.ws.send(JSON.stringify({ code: 2007, 'action': `EDIT RULE`, 'rule': rule, 'value': value }));
+    sendRuleChange(rule, value) {
+        this.sendEncrypted(JSON.stringify({ code: 2007, 'action': `EDIT RULE`, 'rule': rule, 'value': value }));
         this.fetchScoreboardContent();
     }
 
-    fetchScoreboardContent()
-    {
-        this.ws.send(JSON.stringify({ code: 2008, 'action': `FETCH SCOREBOARD` }));
+    fetchScoreboardContent() {
+        this.sendEncrypted(JSON.stringify({ code: 2008, 'action': `FETCH SCOREBOARD` }));
     }
 
-    updateScoreboard(lines)
-    {
-        this.ws.send(JSON.stringify({ code: 2009, 'action': `UPDATE SCOREBOARD`, lines }));
+    updateScoreboard(lines) {
+        this.sendEncrypted(JSON.stringify({ code: 2009, 'action': `UPDATE SCOREBOARD`, lines }));
     }
 
     /**
      * @private
      */
-    onreceive(json)
-    {
+    onreceive(json) {
         if (json.code in this.receivers) {
             this.receivers[json.code](json);
         } else {

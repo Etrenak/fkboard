@@ -3,9 +3,9 @@ import { Team } from "./components/Team.js";
 import { Rule } from "./components/Rule.js";
 import { getBlocksList } from "./BlocksList.js";
 import { ScoreboardModal } from "./components/Modal.js";
+import { base64ArrayBuffer, concatTypedArrays} from "./helpers/Helper.js"
 
-const base32 = "abcdefghijklmnopqrstuvwxyz012345";
-const PROXY_WEBSOCKET_URL = "ws://localhost:50000/socket";
+const PROXY_WEBSOCKET_URL = "ws://fkboard.etrenak.ovh:50000/proxy-socket";
 
 export class FkEditor
 {
@@ -32,7 +32,7 @@ export class FkEditor
         this.teamsDiv = editor.querySelector('.teams');
         this.rulesDiv = editor.querySelector('.rules');
         
-        this.dataBridge = new DataBridge();
+        this.dataBridge = new DataBridge(this);
         this.dataBridge.addReceiver(1000, this.loadTeams.bind(this));
         this.dataBridge.addReceiver(1001, this.playerMove.bind(this));
         this.dataBridge.addReceiver(1002, this.loadRules.bind(this));
@@ -45,18 +45,7 @@ export class FkEditor
             });
         });
 
-
-        let buffer = new Uint8Array(64);
-        window.crypto.getRandomValues(buffer);
-        this.id = "";
-        for(let i=0;i<16;i++){
-            this.id += "abcdefghijklmnopqrstuvwxyz012345"[buffer[i] % 32];
-        }
-        
-        this.dataBridge.setWebSocket(new WebSocket(PROXY_WEBSOCKET_URL));
-        this.dataBridge.useProxy(this.id)
-
-        document.getElementById("command-board-id").innerHTML = this.id;
+        this.createProxiedConnection();
     }
 
     /**
@@ -233,5 +222,24 @@ export class FkEditor
         teamElement.addEventListener('player-move', e => this.dataBridge.sendTeamMovement(e.detail.player, e.detail.team));
         teamElement.addDataActions(this.dataBridge);
         return teamElement;
+    }
+
+    async createProxiedConnection() 
+    {
+        this.secretKey = await window.crypto.subtle.generateKey(
+            {
+                name: "AES-GCM",
+                length: 128,
+            },
+            true,
+            ["encrypt", "decrypt"]
+        ).then((key) => key);
+            
+        this.rawSecretKey = await window.crypto.subtle.exportKey("raw", this.secretKey).then(buffer => new Uint8Array(buffer));
+        this.idArray = crypto.getRandomValues(new Uint8Array(5));
+        document.getElementById("command-board-id").innerHTML = base64ArrayBuffer(concatTypedArrays(this.rawSecretKey, this.idArray));
+        
+        this.dataBridge.setWebSocket(new WebSocket(PROXY_WEBSOCKET_URL));
+        this.dataBridge.useProxy(base64ArrayBuffer(this.idArray))
     }
 }
